@@ -1,0 +1,523 @@
+{
+  "name": "Argenparts - Pipeline 3D Meshy",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## CONFIG PRECARGADA (fase de prueba)\n1. API key de Meshy: PUESTA en los 2 nodos HTTP. ROTARLA al terminar la prueba (quedó expuesta fuera de n8n).\n2. Callback: URL de la Web App de Apps Script PUESTA en los 2 nodos de callback. Token: CAMBIA-ESTE-TOKEN.\n3. PENDIENTE UNICO: credencial AWS en el nodo \"Subir GLB a S3\" (Access Key con escritura al bucket apimagenes).\n\nATENCION: el Apps Script apunta a /webhook-test/meshy-3d. Esa URL SOLO responde con el editor de n8n abierto y \"Listen for test event\" activo. Para operacion continua: activar el workflow (toggle Active) y cambiar en el Apps Script la URL a /webhook/meshy-3d (sin -test).\n\nEl webhook espera POST JSON {token, sku, linea, image_urls: [hasta 4 URLs]} — lo envia el menu \"Pipeline 3D\" del Sheet.",
+        "height": 340,
+        "width": 420
+      },
+      "id": "nota-config",
+      "name": "Nota - Configuración",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## CONSIDERACIONES MERCADO LIBRE (TENTATIVO)\nUn mismo SKU tiene **varias publicaciones** en MeLi y cada publicación puede requerir un **video diferente**.\n\nDiseño previsto (a completar cuando Sebastián entregue las especificaciones de edición):\n- La hoja Cola 3D tiene columnas \"Publicaciones MeLi (IDs)\" y \"Variante de video por publicación\".\n- La rama \"Render video (PLACEHOLDER)\" tomará el GLB de S3 y renderizará N variantes por SKU (una por publicación) con Blender headless: duración, encuadre, intro/outro y texto según la especificación por variante.\n- Pendientes de definir: plantilla de edición por variante, resolución/duración por tipo de publicación, música/branding, y si la carga a MeLi será manual o vía API de MeLi.",
+        "height": 340,
+        "width": 420
+      },
+      "id": "nota-meli",
+      "name": "Nota - MeLi y video",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1880,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "meshy-3d",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-entrada",
+      "name": "Webhook - Recibe SKU del Sheet",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "meshy-3d"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-token",
+              "leftValue": "={{ $json.body.token }}",
+              "rightValue": "CAMBIA-ESTE-TOKEN",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-token",
+      "name": "IF - Token válido",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "sku",
+              "value": "={{ $json.body.sku }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "linea",
+              "value": "={{ $json.body.linea }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "image_urls",
+              "value": "={{ $json.body.image_urls }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-datos",
+      "name": "Set - Datos del SKU",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.meshy.ai/openapi/v1/multi-image-to-3d",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer MESHY_API_KEY_AQUI"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  image_urls: $json.image_urls,\n  ai_model: 'latest',\n  should_texture: true,\n  enable_pbr: true,\n  remove_lighting: true,\n  image_enhancement: true,\n  should_remesh: true,\n  topology: 'triangle',\n  target_polycount: 100000,\n  target_formats: ['glb','usdz'],\n  multi_view_thumbnails: true\n}) }}",
+        "options": {}
+      },
+      "id": "meshy-crear",
+      "name": "Meshy - Crear tarea 3D",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "task_id",
+              "value": "={{ $json.result }}",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "sku",
+              "value": "={{ $('Set - Datos del SKU').item.json.sku }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-taskid",
+      "name": "Set - Guardar task_id",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 60
+      },
+      "id": "wait-60",
+      "name": "Wait - 60 s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        280
+      ],
+      "webhookId": "wait-meshy"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.meshy.ai/openapi/v1/multi-image-to-3d/{{ $('Set - Guardar task_id').item.json.task_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer MESHY_API_KEY_AQUI"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "meshy-estado",
+      "name": "Meshy - Consultar estado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "sw1",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "SUCCEEDED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "exito"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "sw2",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "FAILED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "id": "sw3",
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "CANCELED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "fallo"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "en_progreso"
+        }
+      },
+      "id": "switch-estado",
+      "name": "Switch - Estado de la tarea",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1400,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.model_urls.glb }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "descargar-glb",
+      "name": "Descargar GLB (URL expira)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1620,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "apimagenes",
+        "fileName": "=modelos3d/{{ $('Set - Guardar task_id').item.json.sku }}.glb",
+        "binaryData": true,
+        "additionalFields": {}
+      },
+      "id": "s3-subir",
+      "name": "Subir GLB a S3",
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        140
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "URL_WEBAPP_APPS_SCRIPT_AQUI",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  token: 'CAMBIA-ESTE-TOKEN',\n  sku: $('Set - Guardar task_id').item.json.sku,\n  estado: 'En revisión visual (QA)',\n  task_id: $('Set - Guardar task_id').item.json.task_id,\n  glb_url: 'https://apimagenes.s3.amazonaws.com/modelos3d/' + $('Set - Guardar task_id').item.json.sku + '.glb',\n  thumbnails: Object.values($('Meshy - Consultar estado').item.json.thumbnail_urls || {}).join(', ')\n}) }}",
+        "options": {}
+      },
+      "id": "callback-ok",
+      "name": "Callback a Sheet (éxito)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2020,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "URL_WEBAPP_APPS_SCRIPT_AQUI",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  token: 'CAMBIA-ESTE-TOKEN',\n  sku: $('Set - Guardar task_id').item.json.sku,\n  estado: 'Error',\n  task_id: $('Set - Guardar task_id').item.json.task_id,\n  error: ($json.task_error && $json.task_error.message) || 'Tarea FAILED/CANCELED en Meshy'\n}) }}",
+        "options": {}
+      },
+      "id": "callback-error",
+      "name": "Callback a Sheet (error)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1620,
+        420
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "placeholder-video",
+      "name": "PLACEHOLDER - Render video MeLi (Blender)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2020,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Recibe SKU del Sheet": {
+      "main": [
+        [
+          {
+            "node": "IF - Token válido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Token válido": {
+      "main": [
+        [
+          {
+            "node": "Set - Datos del SKU",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Set - Datos del SKU": {
+      "main": [
+        [
+          {
+            "node": "Meshy - Crear tarea 3D",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meshy - Crear tarea 3D": {
+      "main": [
+        [
+          {
+            "node": "Set - Guardar task_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Guardar task_id": {
+      "main": [
+        [
+          {
+            "node": "Wait - 60 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait - 60 s": {
+      "main": [
+        [
+          {
+            "node": "Meshy - Consultar estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meshy - Consultar estado": {
+      "main": [
+        [
+          {
+            "node": "Switch - Estado de la tarea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Estado de la tarea": {
+      "main": [
+        [
+          {
+            "node": "Descargar GLB (URL expira)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Callback a Sheet (error)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait - 60 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar GLB (URL expira)": {
+      "main": [
+        [
+          {
+            "node": "Subir GLB a S3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir GLB a S3": {
+      "main": [
+        [
+          {
+            "node": "Callback a Sheet (éxito)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Callback a Sheet (éxito)": {
+      "main": [
+        [
+          {
+            "node": "PLACEHOLDER - Render video MeLi (Blender)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "placeholder"
+  }
+}
