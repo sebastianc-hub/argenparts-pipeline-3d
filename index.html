@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline 3D Argenparts — Demo interactiva</title>
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+<style>
+  :root { --azul: #1F4E79; --gris: #f4f6f8; --texto: #1c2733; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--texto); background: var(--gris); }
+  header { background: var(--azul); color: #fff; padding: 28px 20px; text-align: center; }
+  header h1 { font-size: 1.6rem; font-weight: 600; }
+  header p { opacity: .85; margin-top: 6px; font-size: .95rem; }
+  .contenedor { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+  .visor { background: #fff; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.08); overflow: hidden; }
+  model-viewer { width: 100%; height: 62vh; min-height: 380px; background: linear-gradient(#fdfdfd, #e8ecf0); }
+  .hint { text-align: center; padding: 12px; color: #667; font-size: .9rem; }
+  .tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 26px; }
+  .tarjeta { background: #fff; border-radius: 12px; padding: 20px 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  .tarjeta .num { font-size: 1.7rem; font-weight: 700; color: var(--azul); }
+  .tarjeta .desc { margin-top: 6px; color: #556; font-size: .88rem; line-height: 1.35; }
+  .seccion { margin-top: 34px; }
+  .seccion h2 { color: var(--azul); font-size: 1.2rem; margin-bottom: 12px; }
+  .seccion p { line-height: 1.6; color: #334; }
+  .botones { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; justify-content: center; }
+  .btn { display: inline-block; padding: 13px 26px; border-radius: 9px; text-decoration: none; font-weight: 600; }
+  .btn-azul { background: var(--azul); color: #fff; }
+  .btn-borde { border: 2px solid var(--azul); color: var(--azul); }
+  footer { text-align: center; color: #889; font-size: .82rem; padding: 22px; }
+  .pieza { text-align:center; margin-top: 10px; font-size: .95rem; color:#445; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Visualización 3D del catálogo Argenparts</h1>
+  <p>De 4 fotografías de catálogo a un modelo 3D interactivo — automático, en 3 minutos por pieza</p>
+</header>
+
+<div class="contenedor">
+  <div class="visor">
+    <model-viewer src="modelo/P2100724.glb"
+      alt="Pierna de suspensión AG Proshock P2100724 en 3D"
+      auto-rotate rotation-per-second="25deg" camera-controls
+      shadow-intensity="0.7" exposure="1.05" ar>
+    </model-viewer>
+    <div class="hint">🖱️ Arrástralo para girarlo · rueda para acercar · en celular funciona con el dedo (y en RA)</div>
+  </div>
+  <div class="pieza"><strong>Pieza demo:</strong> P2100724 — Pierna de suspensión, línea AG Proshock. Generada por IA a partir de solo 4 fotos existentes, sin cámaras ni equipo especial.</div>
+
+  <div class="tarjetas">
+    <div class="tarjeta"><div class="num">3 min</div><div class="desc">por SKU, de la base de datos al modelo terminado, sin intervención manual</div></div>
+    <div class="tarjeta"><div class="num">$10.50</div><div class="desc">MXN por SKU (modelo 3D con textura, tarifa oficial Meshy)</div></div>
+    <div class="tarjeta"><div class="num">2,749</div><div class="desc">SKUs del catálogo ya elegibles con las fotos actuales</div></div>
+    <div class="tarjeta"><div class="num">$28,800</div><div class="desc">MXN el catálogo elegible completo (o ~$5,200/mes en lotes de 500)</div></div>
+  </div>
+
+  <div class="seccion">
+    <h2>¿Qué es esto?</h2>
+    <p>Un pipeline automático que convierte las fotografías existentes de nuestro catálogo en <strong>modelos 3D interactivos</strong> (como el de arriba) y <strong>videos 360°</strong>. El modelo se publica en Shopify con visor y realidad aumentada integrados; del mismo archivo salen los videos para Mercado Libre y Walmart — una variante por publicación, sin costo adicional. El flujo completo ya está validado: Google Sheet → n8n → IA (Meshy) → S3 → tienda, con control de calidad humano antes de publicar.</p>
+  </div>
+
+  <div class="botones">
+    <a class="btn btn-azul" href="docs/Plan_Fases_Visualizacion_3D_Argenparts.docx">📄 Descargar el reporte completo (Word)</a>
+    <a class="btn btn-borde" href="https://github.com/sebastianc-hub/argenparts-pipeline-3d">Repositorio técnico</a>
+  </div>
+
+  <div class="seccion">
+    <h2>Siguientes pasos</h2>
+    <p>Zumiko M. es la responsable del proyecto: ella coordinará las especificaciones de edición de video por tipo de publicación y la priorización de SKUs. El detalle de fases, costos y riesgos está en el reporte.</p>
+  </div>
+</div>
+
+<footer>Argenparts · Proyecto interno · Julio 2026</footer>
+</body>
+</html>
