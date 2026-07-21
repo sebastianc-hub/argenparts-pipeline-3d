@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pipeline 3D Argenparts — Demo interactiva</title>
-<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 <style>
   :root { --azul: #1F4E79; --gris: #f4f6f8; --texto: #1c2733; }
   * { box-sizing: border-box; margin: 0; }
@@ -13,16 +12,22 @@
   header h1 { font-size: 1.6rem; font-weight: 600; }
   header p { opacity: .85; margin-top: 6px; font-size: .95rem; }
   .contenedor { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
-  .visor { background: #fff; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.08); overflow: hidden; }
-  model-viewer { width: 100%; height: 62vh; min-height: 380px; background: linear-gradient(#fdfdfd, #e8ecf0); }
+  .visor { background: #fff; border-radius: 14px; box-shadow: 0 4px 18px rgba(0,0,0,.08); overflow: hidden; position: relative; }
+  #lienzo3d { width: 100%; height: 62vh; min-height: 380px; display: block; background: linear-gradient(#fdfdfd, #e2e7ec); touch-action: none; }
+  #cargando { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #667; font-size: 1rem; background: linear-gradient(#fdfdfd, #e2e7ec); }
   .hint { text-align: center; padding: 12px; color: #667; font-size: .9rem; }
   .tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 26px; }
   .tarjeta { background: #fff; border-radius: 12px; padding: 20px 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-  .tarjeta .num { font-size: 1.7rem; font-weight: 700; color: var(--azul); }
+  .tarjeta .num { font-size: 1.55rem; font-weight: 700; color: var(--azul); }
   .tarjeta .desc { margin-top: 6px; color: #556; font-size: .88rem; line-height: 1.35; }
   .seccion { margin-top: 34px; }
   .seccion h2 { color: var(--azul); font-size: 1.2rem; margin-bottom: 12px; }
   .seccion p { line-height: 1.6; color: #334; }
+  table.comp { width: 100%; border-collapse: collapse; margin-top: 14px; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.06); font-size: .92rem; }
+  table.comp th { background: var(--azul); color: #fff; padding: 10px 12px; text-align: left; }
+  table.comp td { padding: 10px 12px; border-top: 1px solid #edf0f3; }
+  table.comp tr td:first-child { color: #445; }
+  .gana { font-weight: 700; color: #157347; }
   .botones { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; justify-content: center; }
   .btn { display: inline-block; padding: 13px 26px; border-radius: 9px; text-decoration: none; font-weight: 600; }
   .btn-azul { background: var(--azul); color: #fff; }
@@ -30,6 +35,12 @@
   footer { text-align: center; color: #889; font-size: .82rem; padding: 22px; }
   .pieza { text-align:center; margin-top: 10px; font-size: .95rem; color:#445; }
 </style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
 </head>
 <body>
 <header>
@@ -39,25 +50,37 @@
 
 <div class="contenedor">
   <div class="visor">
-    <model-viewer src="modelo/P2100724.glb"
-      alt="Pierna de suspensión AG Proshock P2100724 en 3D"
-      auto-rotate rotation-per-second="25deg" camera-controls
-      shadow-intensity="0.7" exposure="1.05" ar>
-    </model-viewer>
-    <div class="hint">🖱️ Arrástralo para girarlo · rueda para acercar · en celular funciona con el dedo (y en RA)</div>
+    <canvas id="lienzo3d"></canvas>
+    <div id="cargando">Cargando modelo 3D…</div>
+    <div class="hint">🖱️ Arrástralo para girarlo · rueda para acercar · en celular funciona con el dedo</div>
   </div>
   <div class="pieza"><strong>Pieza demo:</strong> P2100724 — Pierna de suspensión, línea AG Proshock. Generada por IA a partir de solo 4 fotos existentes, sin cámaras ni equipo especial.</div>
 
   <div class="tarjetas">
     <div class="tarjeta"><div class="num">3 min</div><div class="desc">por SKU, de la base de datos al modelo terminado, sin intervención manual</div></div>
-    <div class="tarjeta"><div class="num">$10.50</div><div class="desc">MXN por SKU (modelo 3D con textura, tarifa oficial Meshy)</div></div>
+    <div class="tarjeta"><div class="num">$5.60–10.50</div><div class="desc">MXN por SKU según el motor de IA (Tripo / Meshy, tarifas oficiales)</div></div>
     <div class="tarjeta"><div class="num">2,749</div><div class="desc">SKUs del catálogo ya elegibles con las fotos actuales</div></div>
-    <div class="tarjeta"><div class="num">$28,800</div><div class="desc">MXN el catálogo elegible completo (o ~$5,200/mes en lotes de 500)</div></div>
+    <div class="tarjeta"><div class="num">$15.3–28.8 mil</div><div class="desc">MXN el catálogo elegible completo, según motor elegido</div></div>
   </div>
 
   <div class="seccion">
     <h2>¿Qué es esto?</h2>
-    <p>Un pipeline automático que convierte las fotografías existentes de nuestro catálogo en <strong>modelos 3D interactivos</strong> (como el de arriba) y <strong>videos 360°</strong>. El modelo se publica en Shopify con visor y realidad aumentada integrados; del mismo archivo salen los videos para Mercado Libre y Walmart — una variante por publicación, sin costo adicional. El flujo completo ya está validado: Google Sheet → n8n → IA (Meshy) → S3 → tienda, con control de calidad humano antes de publicar.</p>
+    <p>Un pipeline automático que convierte las fotografías existentes de nuestro catálogo en <strong>modelos 3D interactivos</strong> (como el de arriba) y <strong>videos 360°</strong>. El modelo se publica en Shopify con visor y realidad aumentada integrados; del mismo archivo salen los videos para Mercado Libre y Walmart — una variante por publicación, sin costo adicional. El flujo completo ya está validado: Google Sheet → n8n → IA → S3 → tienda, con control de calidad humano antes de publicar.</p>
+  </div>
+
+  <div class="seccion">
+    <h2>¿Meshy o Tripo? Comparativa de costos (tarifas oficiales verificadas)</h2>
+    <table class="comp">
+      <tr><th>Concepto</th><th>Meshy (Meshy-6)</th><th>Tripo (v3.1)</th></tr>
+      <tr><td>Créditos por SKU (multi-imagen + textura)</td><td>30</td><td>30</td></tr>
+      <tr><td>Precio del crédito</td><td>$0.349 MXN (vía plan Pro)</td><td class="gana">$0.185 MXN ($0.01 USD)</td></tr>
+      <tr><td>Costo por SKU</td><td>≈ $10.50 MXN</td><td class="gana">≈ $5.60 MXN</td></tr>
+      <tr><td>Catálogo completo (2,749 SKUs)</td><td>≈ $28,800 MXN</td><td class="gana">≈ $15,300 MXN</td></tr>
+      <tr><td>Suscripción obligatoria</td><td>Sí ($349 MXN/mes)</td><td class="gana">No — pago por uso</td></tr>
+      <tr><td>Expiración de créditos</td><td>Mensual</td><td class="gana">No expiran</td></tr>
+      <tr><td>Calidad observada en pruebas</td><td class="gana">Mejor textura</td><td>Malla más pesada (requiere optimización, +$1-2/SKU)</td></tr>
+    </table>
+    <p style="margin-top:12px">Tripo sale ~47% más barato, pero la textura de Meshy aprobó mejor en las pruebas. El pipeline tiene el motor intercambiable (2 nodos en n8n), así que la decisión se tomará con evidencia: el primer lote se genera duplicado en ambos y gana el de mejor relación aprobación de calidad / costo.</p>
   </div>
 
   <div class="botones">
@@ -72,5 +95,52 @@
 </div>
 
 <footer>Argenparts · Proyecto interno · Julio 2026</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const canvas = document.getElementById('lienzo3d');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+const scene = new THREE.Scene();
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
+const controls = new OrbitControls(camera, canvas);
+controls.autoRotate = true;
+controls.autoRotateSpeed = 2.2;
+controls.enableDamping = true;
+
+const loader = new GLTFLoader();
+loader.setMeshoptDecoder(MeshoptDecoder);
+loader.load('modelo/P2100724.glb', (gltf) => {
+  const obj = gltf.scene;
+  scene.add(obj);
+  const caja = new THREE.Box3().setFromObject(obj);
+  const centro = caja.getCenter(new THREE.Vector3());
+  const tam = caja.getSize(new THREE.Vector3()).length();
+  controls.target.copy(centro);
+  camera.position.set(centro.x, centro.y + tam * 0.12, centro.z + tam * 0.85);
+  camera.near = tam / 100; camera.far = tam * 10; camera.updateProjectionMatrix();
+  document.getElementById('cargando').style.display = 'none';
+}, undefined, (err) => {
+  document.getElementById('cargando').textContent = 'No se pudo cargar el modelo: ' + err.message;
+});
+
+function ajustar() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', ajustar);
+
+renderer.setAnimationLoop(() => { ajustar(); controls.update(); renderer.render(scene, camera); });
+</script>
 </body>
 </html>
